@@ -99,7 +99,7 @@ def gen_mac(name: str, count: int):
     return macs
 
 def run_module():
-    """the wrapper fuction for the ansible module"""
+    """the wrapper function for the ansible module"""
     module_args = dict(
         name=dict(type='str', required=True),
         count=dict(type='int', required=False,default=1),
