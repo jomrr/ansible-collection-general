@@ -2,7 +2,26 @@
 
 
 
+## v0.2.0 (2024-03-20)
+
+### Feature
+
+* feat: generate MAC addresses from strings using sha256
+
+- Create a new file `mac_address.py` for generating MAC addresses from strings using sha256
+- Defined a lookup plugin to generate a MAC address from a given string
+- Added example and return documentation for the lookup plugin
+- Implemented the `run` function to generate the MAC address from the input string
+- Modify the `pyproject.toml` file by adding a build command using sed for updating version numbers
+
+Signed-off-by: Jonas Mauer &lt;jam@kabelmail.net&gt; ([`8639de3`](https://github.com/jam82/ansible-collection-general/commit/8639de389840c2da36eb7c7f105be2ed4e5019d1))
+
+
 ## v0.1.0 (2024-03-19)
+
+### Build
+
+* build(release): version 0.1.0 ([`d60fcff`](https://github.com/jam82/ansible-collection-general/commit/d60fcff9ea67dd8e609312879f58ea5d5092da86))
 
 ### Chore
 
