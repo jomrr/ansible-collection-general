@@ -2,7 +2,7 @@
 
 namespace: jam82
 name: general
-version: {version}
+version: 0.2.0
 readme: README.md
 authors:
   - jam82
