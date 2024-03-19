@@ -1,10 +1,10 @@
 #!/usr/bin/python
 
 # Copyright: (c) 2020, Jonas Mauer <jam@kabelmail.net>
-# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+# MIT License (see https://opensource.org/licenses/MIT)
 
 """
-This ansible module generates a mac address from a name and network card index.
+This ansible module generates a mac address from a name and index no.
 """
 
 from __future__ import absolute_import, division, print_function
@@ -88,8 +88,8 @@ def gen_mac(name: str, count: int):
         # md5 = 6abba68431...
         # we split it by 2 so parts = [6a, bb, a6, 84, 31, ..]
         parts = split_n(md5hex, 2)
-        # x2:xx.. is a private mac prefix, so we use 02
-        # and add the first 5 elements of parts
+        # x2:xx.. is a private unicast mac prefix, so we use 02
+        # and append the first 5 elements of parts (the hash split by 2)
         elements = ["02",parts[0],parts[1],parts[2],parts[3],parts[4]]
         # then we join elements by ':' to get the mac address
         # which in this case is "02:6a:bb:a6:84:31"

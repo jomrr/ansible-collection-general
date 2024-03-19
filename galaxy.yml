@@ -1,29 +1,18 @@
+---
+
 namespace: jam82
-
 name: general
-
-version: 0.0.1
-
+version: 1.0.0
 readme: README.md
-
 authors:
-- jam82
-
-description: general ansible modules for my roles
-
+  - jam82
+description: "Ansible collection with general modules and plugins."
 license_file: 'LICENSE'
-
 tags:
   - mac
-
 dependencies: {}
-
 repository: https://github.com/jam82/ansible-collection-general.git
-
 documentation: https://github.com/jam82/ansible-collection-general.git
-
 homepage: https://github.com/jam82/ansible-collection-general.git
-
 issues: https://github.com/jam82/ansible-collection-general/issues
-
 build_ignore: []
