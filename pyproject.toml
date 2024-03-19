@@ -11,6 +11,7 @@ repository = "https://github.com/jam82/ansible-collection-general"
 name = "cz_conventional_commits"
 
 [tool.semantic_release]
+build_command = "sed -i 's/version: .*/version: {version}/g' galaxy.yml"
 commit_message = "build(release): version {version}"
 major_on_zero = false
 upload_to_pypi = false
