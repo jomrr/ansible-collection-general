@@ -1,6 +1,6 @@
 [project]
 name = "ansible-collection-general"
-version = "0.0.0"
+version = "0.1.0"
 description = "Ansible collection with general modules and plugins."
 authors = ["Jonas Mauer"]
 license = "MIT"
