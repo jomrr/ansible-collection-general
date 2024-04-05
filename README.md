@@ -1,10 +1,10 @@
-# Ansible collection: jam82.general
+# Ansible collection: jomrr.general
 
-Documentation for the collection jam82.general.
+Documentation for the collection jomrr.general.
 
 ## Modules
 
-### jam82.general.gen_mac_from_name
+### jomrr.general.gen_mac_from_name
 
 Used with roles kickstart and virtinstall to generate reproducable MACs for VMs.
 
@@ -29,11 +29,11 @@ dependency:
 ---
 
 collections:
-  - name: git+https://github.com/jam82/ansible-collection-general.git
+  - name: git+https://github.com/jomrr/ansible-collection-general.git
     version: main
 ```
 
-This automatically installs into the namespace jam82 defined in `galaxy.yml`.
+This automatically installs into the namespace jomrr defined in `galaxy.yml`.
 
 ## Usage
 
@@ -43,15 +43,15 @@ Usage in role task to generate 2 MACs for host `test_guest`:
 
 ```yaml
     - name: "Generate reproducable MAC Address(es) from name/fqdn"
-      jam82.general.gen_mac_from_name:
+      jomrr.general.gen_mac_from_name:
         name: "test_guest"
         count: 2
 ```
 
 ## License and Author
 
-- Author:: [jam82](https://github.com/jam82/)
-- Copyright:: 2022, [jam82](https://github.com/jam82/)
+- Author:: [jomrr](https://github.com/jomrr/)
+- Copyright:: 2022, [jomrr](https://github.com/jomrr/)
 
 Licensed under [MIT License](https://opensource.org/licenses/MIT).
-See [LICENSE](https://github.com/jam82/ansible-role-virtinstall/blob/master/LICENSE) file in repository.
+See [LICENSE](https://github.com/jomrr/ansible-role-virtinstall/blob/master/LICENSE) file in repository.

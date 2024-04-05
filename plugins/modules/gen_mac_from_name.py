@@ -36,7 +36,7 @@ options:
         type: int
 
 author:
-    - Jonas Mauer (@jam82)
+    - Jonas Mauer (@jomrr)
 '''
 
 EXAMPLES = r'''

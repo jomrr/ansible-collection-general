@@ -5,7 +5,7 @@ description = "Ansible collection with general modules and plugins."
 authors = ["Jonas Mauer"]
 license = "MIT"
 keywords = ["ansible", "collection", "roles", "general", "modules", "plugins"]
-repository = "https://github.com/jam82/ansible-collection-general"
+repository = "https://github.com/jomrr/ansible-collection-general"
 
 [tool.commitizen]
 name = "cz_conventional_commits"
