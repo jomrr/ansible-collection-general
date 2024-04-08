@@ -9,7 +9,11 @@ authors:
 description: "Ansible collection with general modules and plugins."
 license_file: 'LICENSE'
 tags:
+  - ansible
+  - collection
+  - lookup
   - mac
+  - plugin
 dependencies: {}
 repository: https://github.com/jomrr/ansible-collection-general.git
 documentation: https://github.com/jomrr/ansible-collection-general.git
