@@ -1,3 +1,5 @@
+# collection: jomrr.general
+# file: .pre-commit-config.yaml
 ---
 repos:
   - repo: https://github.com/commitizen-tools/commitizen

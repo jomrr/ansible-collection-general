@@ -4,7 +4,7 @@ version = "0.2.0"
 description = "Ansible collection with general modules and plugins."
 authors = ["Jonas Mauer"]
 license = "MIT"
-keywords = ["ansible", "collection", "roles", "general", "modules", "plugins"]
+keywords = ["Linux", "ansible", "collection", "roles", "general", "modules", "plugins"]
 repository = "https://github.com/jomrr/ansible-collection-general"
 
 [tool.commitizen]
