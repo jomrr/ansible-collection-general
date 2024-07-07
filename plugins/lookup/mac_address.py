@@ -2,7 +2,7 @@
 
 """Lookup plugin to generate a mac address from a string using sha256."""
 
-import hashlib
+from hashlib import sha256
 
 from ansible.errors import AnsibleError
 from ansible.plugins.lookup import LookupBase
@@ -40,7 +40,7 @@ class LookupModule(LookupBase):
         string = terms[0]
 
         # Generate SHA256 hash of the string
-        hash_object = hashlib.sha256(string.encode())
+        hash_object = sha256(string.encode())
         hex_dig = hash_object.hexdigest()
 
         # Construct the MAC address

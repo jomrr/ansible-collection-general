@@ -9,6 +9,7 @@ authors:
 description: "Ansible collection with general modules and plugins."
 license_file: 'LICENSE'
 tags:
+  - linux
   - ansible
   - collection
   - lookup
