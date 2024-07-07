@@ -1,0 +1,5 @@
+# collection: jomrr.general
+# file: meta/runtime.yml
+---
+
+requires_ansible: '>=2.17.0'
