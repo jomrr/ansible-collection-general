@@ -16,7 +16,7 @@ prefix.
 
 ## Requirements
 
-- ansible-core >=2.17.0
+- ansible-core >=2.20.0
 - Both plugins use Python's standard library and Ansible; no additional Python
   packages or system programs are required.
 
@@ -103,4 +103,4 @@ returns unchanged.
 License: GPL-3.0-or-later.
 See [LICENSE](LICENSE) for the full license text.
 
-Copyright (c) 2022-2024 Jonas Mauer.
+Copyright (c) 2022-2026 Jonas Mauer.

@@ -20,12 +20,9 @@ jobs:
           - ansible: "2.20.*"
             python: "3.12"
             group: "ansible-2-20"
-          - ansible: "2.17.*"
-            python: "3.12"
-            group: "ansible-2-17"
     env:
       ANSIBLE_GROUP: ${{ matrix.group }}
-      ANSIBLE_TEST_PREFER_PODMAN: '1'
+      ANSIBLE_TEST_PREFER_PODMAN: ''
       ANSIBLE_COLLECTIONS_PATH: ${{ github.workspace }}
 
     defaults:
@@ -36,10 +33,10 @@ jobs:
         with:
           submodules: recursive
           path: ansible_collections/jomrr/general
-      - name: Verify Podman
+      - name: Verify container engines
         run: |
-          podman version
-          podman info
+          docker version
+          docker info
       - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
         with:
           python-version: ${{ matrix.python }}
@@ -49,14 +46,14 @@ jobs:
         run: make sync PYTHON_VERSION=${{ matrix.python }}
       - name: Collection and embedded role hooks
         run: make hooks
-      - name: Sanity with Podman
+      - name: Sanity
         run: .venv/bin/ansible-test sanity --docker --python ${{ matrix.python }}
-      - name: Units with Podman
+      - name: Units
         if: hashFiles('ansible_collections/jomrr/general/tests/unit/**') != ''
         run: .venv/bin/ansible-test units --docker --python ${{ matrix.python }}
-      - name: Module and plugin integration with Podman
+      - name: Module and plugin integration
         if: inputs.full && hashFiles('ansible_collections/jomrr/general/tests/integration/targets/**') != ''
-        run: make integration PYTHON_VERSION=${{ matrix.python }}
+        run: .venv/bin/ansible-test integration --docker --python ${{ matrix.python }}
       - name: Test the installed package outside the source checkout
         if: inputs.full
         run: make package-test
