@@ -1,21 +1,49 @@
+# Generated tooling configuration; galaxy.yml owns the collection version.
 [project]
-name = "ansible-collection-general"
-version = "0.2.0"
-description = "Ansible collection with general modules and plugins."
-authors = ["Jonas Mauer"]
-license = "MIT"
-keywords = ["Linux", "ansible", "collection", "roles", "general", "modules", "plugins"]
-repository = "https://github.com/jomrr/ansible-collection-general"
+name = "jomrr-general-tools"
+# Virtual tool environment; only galaxy.yml is stamped for collection releases.
+version = "0"
+requires-python = ">=3.12"
 
-[tool.commitizen]
-name = "cz_conventional_commits"
+[tool.uv]
+package = false
+default-groups = ["default"]
+
+conflicts = [[{ group = "ansible-2-20" }, { group = "ansible-2-17" }]]
+[dependency-groups]
+default = [{ include-group = "dev" }, { include-group = "ansible-2-20" }]
+ansible-2-20 = ["ansible-core==2.20.*"]
+ansible-2-17 = ["ansible-core==2.17.*"]
+dev = [
+  "ansible-lint==26.*", "pre-commit==4.*",
+  "molecule==26.*", "molecule-plugins[podman]==25.*",
+  "mypy", "types-PyYAML", "ruff", "pylint", "antsibull-changelog", "python-semantic-release==10.*",
+]
+docs = ["antsibull-docs>=2,<3", "sphinx", "sphinx-ansible-theme", "ansible-pygments"]
+
+[tool.mypy]
+strict = true
+follow_untyped_imports = true
+explicit_package_bases = true
+mypy_path = "$MYPY_CONFIG_FILE_DIR/../../.."
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+
+[tool.pylint.format]
+max-line-length = 88
+
+[tool.pylint.main]
+source-roots = ["../../.."]
 
 [tool.semantic_release]
-commit_message = "build(release): version {version}"
-major_on_zero = false
-upload_to_pypi = false
-upload_to_vcs_release = true
-version_pattern = 'galaxy.yml:version: {version}'
-version_toml = [
-    "pyproject.toml:project.version",
-]
+version_variables = ["galaxy.yml:version"]
+commit_message = "build(release): {version}"
+tag_format = "v{version}"
+build_command_env = ["ANSIBLE_HOME", "ANSIBLE_LOCAL_TEMP", "ANSIBLE_COLLECTIONS_PATH", "ANSIBLE_ROLES_PATH"]
+build_command = "antsibull-changelog release && git add -- CHANGELOG.rst changelogs && ansible-galaxy collection build --output-path dist/"
+
+[tool.semantic_release.branches.main]
+match = "main"
+prerelease = false

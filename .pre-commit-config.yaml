@@ -1,9 +1,32 @@
-# collection: jomrr.general
-# file: .pre-commit-config.yaml
 ---
 repos:
+  - repo: local
+    hooks:
+      - id: ansible-lint
+        name: ansible-lint (production, offline)
+        language: system
+        entry: env ANSIBLE_HOME=.ansible .venv/bin/ansible-lint --offline --profile production .
+        pass_filenames: false
+        types: [yaml]
+      - id: ruff
+        name: ruff
+        language: system
+        entry: .venv/bin/ruff check
+        types: [python]
+      - id: mypy
+        name: mypy
+        language: system
+        entry: .venv/bin/mypy --package ansible_collections.jomrr.general
+        pass_filenames: false
+        types: [python]
+      - id: pylint
+        name: pylint
+        language: system
+        entry: .venv/bin/pylint
+        types: [python]
   - repo: https://github.com/commitizen-tools/commitizen
     rev: v3.20.0
     hooks:
       - id: commitizen
-        stages: [commit-msg]
+        stages:
+          - commit-msg

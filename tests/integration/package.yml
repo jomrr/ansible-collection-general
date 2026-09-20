@@ -1,0 +1,11 @@
+---
+- name: Verify installed MAC plugins
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Check the MAC module
+      ansible.builtin.import_tasks: targets/mac/tasks/main.yml
+
+    - name: Check the MAC lookup plugin
+      ansible.builtin.import_tasks: targets/lookup_mac/tasks/main.yml

@@ -1,0 +1,23 @@
+---
+- name: Verify lookup and query results
+  ansible.builtin.assert:
+    that:
+      - lookup('jomrr.general.mac', 'host.example.com-1') == '52:54:d7:ec:44:89'
+      - query('jomrr.general.mac', 'host.example.com-1') == ['52:54:d7:ec:44:89']
+      - lookup('jomrr.general.mac', '') == '52:54:e3:b0:c4:42'
+      - lookup('jomrr.general.mac', 'münchen.example') == '52:54:0e:4b:5d:e1'
+
+- name: Validate lookup argument count
+  block:
+    - name: Call lookup with multiple names
+      ansible.builtin.debug:
+        msg: "{{ query('jomrr.general.mac', 'one', 'two') }}"
+
+    - name: Fail if lookup accepted multiple names
+      ansible.builtin.fail:
+        msg: Lookup accepted multiple names.
+  rescue:
+    - name: Verify the lookup argument error
+      ansible.builtin.assert:
+        that:
+          - "'mac lookup expects exactly one string argument' in ansible_failed_result.msg"

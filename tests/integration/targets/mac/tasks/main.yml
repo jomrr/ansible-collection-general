@@ -1,0 +1,72 @@
+---
+- name: Generate one address without an index
+  jomrr.general.mac:
+    name: host.example.com-1
+  register: mac_default
+
+- name: Generate the same address with an explicit null count
+  jomrr.general.mac:
+    name: host.example.com-1
+    count: null
+  register: mac_null
+
+- name: Generate the same address with a nonpositive count
+  jomrr.general.mac:
+    name: host.example.com-1
+    count: "{{ item }}"
+  loop: [0, -1]
+  register: mac_nonpositive
+
+- name: Generate indexed addresses
+  jomrr.general.mac:
+    name: test_guest
+    count: 2
+  register: mac_indexed
+
+- name: Repeat indexed generation in check mode
+  jomrr.general.mac:
+    name: test_guest
+    count: 2
+  check_mode: true
+  register: mac_checked
+
+- name: Check generation without a count
+  jomrr.general.mac:
+    name: host.example.com-1
+  check_mode: true
+  register: mac_default_checked
+
+- name: Verify module and lookup agreement
+  ansible.builtin.assert:
+    that:
+      - mac_default.macs == ['52:54:d7:ec:44:89']
+      - mac_default.macs == query('jomrr.general.mac', 'host.example.com-1')
+      - mac_null.macs == mac_default.macs
+      - mac_nonpositive.results | map(attribute='macs') | list == [mac_default.macs, mac_default.macs]
+      - mac_indexed.macs == ['52:54:89:4e:c3:ed', '52:54:3c:b6:a8:45']
+      - mac_indexed.macs[0] == lookup('jomrr.general.mac', 'test_guest-0')
+      - mac_checked.macs == mac_indexed.macs
+      - mac_default_checked.macs == mac_default.macs
+      - mac_default.original_message == ['host.example.com-1', none]
+      - mac_default.message == 'ok'
+      - not mac_default.changed
+      - not mac_null.changed
+      - not mac_nonpositive.changed
+      - not mac_indexed.changed
+      - not mac_checked.changed
+      - not mac_default_checked.changed
+
+- name: Validate a missing name
+  block:
+    - name: Call the module without a name
+      jomrr.general.mac:
+        count: 1
+
+    - name: Fail if the module accepted the missing name
+      ansible.builtin.fail:
+        msg: The module accepted a missing name.
+  rescue:
+    - name: Verify the required argument error
+      ansible.builtin.assert:
+        that:
+          - "'missing required arguments: name' in ansible_failed_result.msg"

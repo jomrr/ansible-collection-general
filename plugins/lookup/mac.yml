@@ -1,0 +1,25 @@
+---
+# GNU General Public License v3.0+ (see LICENSE)
+DOCUMENTATION:
+  name: mac
+  author: Jonas Mauer (@jomrr)
+  version_added: 0.2.0
+  short_description: Generate MAC address from string
+  description:
+    - This lookup returns a MAC address starting with C(52:54:) generated from a SHA-256 hash of the given string.
+  options:
+    _terms:
+      description: String to hash into a MAC address.
+      required: true
+      type: list
+      elements: str
+EXAMPLES: |
+  - name: Generate MAC address from string
+    ansible.builtin.debug:
+      msg: "{{ lookup('jomrr.general.mac', 'host.example.com-1') }}"
+RETURN:
+  _raw:
+    description:
+      - MAC address starting with C(52:54:) generated from the given string.
+    type: list
+    elements: str
