@@ -30,15 +30,15 @@ ansible-galaxy collection install jomrr.general
 
 ### Modules
 
-| Name | Description |
-| ---- | ----------- |
-| [`jomrr.general.mac`](plugins/modules/mac.py) | Generate deterministic MAC addresses from a name |
+| Name | Description | idempotent | check_mode |
+| ---- | ----------- | ---------- | ---------- |
+| [`jomrr.general.mac`](plugins/modules/mac.py) | Generate deterministic MAC addresses from a name | n/a (read) | yes |
 
 ### Lookup Plugins
 
-| Name | Description |
-| ---- | ----------- |
-| [`jomrr.general.mac`](plugins/lookup/mac.py) | Generate MAC address from string |
+| Name | Description | idempotent | check_mode |
+| ---- | ----------- | ---------- | ---------- |
+| [`jomrr.general.mac`](plugins/lookup/mac.py) | Generate MAC address from string | n/a | n/a |
 
 ## Address Generation
 
