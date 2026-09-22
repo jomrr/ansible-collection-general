@@ -1,0 +1,3 @@
+---
+bugfixes:
+  - mac - embed module and lookup documentation in Python to prevent duplicate Galaxy entries.
