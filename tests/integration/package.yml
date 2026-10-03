@@ -9,3 +9,50 @@
 
     - name: Check the MAC lookup plugin
       ansible.builtin.import_tasks: targets/lookup_mac/tasks/main.yml
+
+    - name: Check the installed repository filter
+      ansible.builtin.import_tasks: targets/filter_repo/tasks/main.yml
+
+    - name: Allocate isolated package smoke-test files
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: general-repo-package
+      register: repo_package_directory
+
+    - name: Exercise installed repository modules
+      block:
+        - name: Create an RPM repository from the installed collection
+          jomrr.general.repo_rpm:
+            path: "{{ repo_package_directory.path }}/archive.repo"
+            name: archive
+            backend: dnf
+            baseurl: ['https://mirror.invalid/archive']
+            enabled: false
+          register: repo_package_created
+
+        - name: Repeat the installed RPM declaration
+          jomrr.general.repo_rpm:
+            path: "{{ repo_package_directory.path }}/archive.repo"
+            name: archive
+            backend: dnf
+            baseurl: ['https://mirror.invalid/archive']
+            enabled: false
+          register: repo_package_repeated
+
+        - name: Converge absent APT sources with the installed module
+          jomrr.general.repo_apt:
+            path: "{{ repo_package_directory.path }}/absent.sources"
+            state: absent
+          register: repo_package_apt
+
+        - name: Verify installed module results
+          ansible.builtin.assert:
+            that:
+              - repo_package_created.changed
+              - not repo_package_repeated.changed
+              - not repo_package_apt.changed
+      always:
+        - name: Remove package smoke-test files
+          ansible.builtin.file:
+            path: "{{ repo_package_directory.path }}"
+            state: absent

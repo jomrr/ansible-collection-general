@@ -1,0 +1,11 @@
+---
+- name: Repository module side_effect
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Run repository ../../../tests/integration/targets/repo_apt/tasks/lifecycle
+      ansible.builtin.include_tasks: ../../../tests/integration/targets/repo_apt/tasks/lifecycle.yml
+      when: ansible_facts.os_family == 'Debian'
+    - name: Run repository ../../../tests/integration/targets/repo_rpm/tasks/lifecycle
+      ansible.builtin.include_tasks: ../../../tests/integration/targets/repo_rpm/tasks/lifecycle.yml
+      when: ansible_facts.os_family in ['RedHat', 'Suse']

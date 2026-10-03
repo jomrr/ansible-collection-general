@@ -1,0 +1,16 @@
+---
+- name: Repository module verify
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Run repository ../../../tests/integration/targets/repo_apt/tasks/verify
+      ansible.builtin.include_tasks: ../../../tests/integration/targets/repo_apt/tasks/verify.yml
+      when: ansible_facts.os_family == 'Debian'
+    - name: Run repository ../../../tests/integration/targets/repo_rpm/tasks/verify
+      ansible.builtin.include_tasks: ../../../tests/integration/targets/repo_rpm/tasks/verify.yml
+      when: ansible_facts.os_family in ['RedHat', 'Suse']
+    - name: Verify the planned platforms
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.distribution in ['AlmaLinux', 'Debian', 'Fedora', 'Ubuntu', 'openSUSE Leap', 'openSUSE
+            Tumbleweed']

@@ -1,0 +1,84 @@
+---
+- name: Predict APT mirror change
+  jomrr.general.repo_apt:
+    path: /tmp/jomrr-general-repo-test/supplied.sources
+    suites: &id001
+      - fixture-backports
+    uris:
+      - https://mirror.invalid/v2
+  check_mode: true
+  register: repo_predicted
+- name: Predict the APT mirror change
+  ansible.builtin.assert:
+    that:
+      - repo_predicted.changed
+- name: Run repository verify
+  ansible.builtin.include_tasks: verify.yml
+- name: Apply APT mirror change
+  jomrr.general.repo_apt:
+    path: /tmp/jomrr-general-repo-test/supplied.sources
+    suites: *id001
+    uris:
+      - https://mirror.invalid/v2
+- name: Enable the created APT source
+  jomrr.general.repo_apt:
+    path: /tmp/jomrr-general-repo-test/new.sources
+    suites: &id002
+      - ./
+    uris: &id003
+      - https://mirror.invalid/new
+    enabled: true
+  register: repo_enabled
+- name: Predict disabling it again
+  jomrr.general.repo_apt: &id004
+    path: /tmp/jomrr-general-repo-test/new.sources
+    suites: *id002
+    uris: *id003
+    enabled: false
+  check_mode: true
+  register: repo_disabled_check
+- name: Read enabled APT source after check mode
+  ansible.builtin.slurp:
+    src: /tmp/jomrr-general-repo-test/new.sources
+  register: repo_enabled_text
+- name: Check mode preserved the enabled state
+  ansible.builtin.assert:
+    that:
+      - repo_enabled.changed
+      - repo_disabled_check.changed
+      - '''Enabled: yes'' in (repo_enabled_text.content | b64decode)'
+- name: Disable the created APT source
+  jomrr.general.repo_apt: *id004
+- name: Remove only selected APT suites
+  jomrr.general.repo_apt:
+    path: /tmp/jomrr-general-repo-test/supplied.sources
+    suites:
+      - fixture-backports
+    state: absent
+- name: Read surviving APT suites
+  ansible.builtin.slurp:
+    src: /tmp/jomrr-general-repo-test/supplied.sources
+  register: repo_remaining
+- name: Retain other APT suites
+  ansible.builtin.assert:
+    that:
+      - '''Suites: fixture-backports'' not in (repo_remaining.content | b64decode)'
+      - '''Suites: fixture\n'' in (repo_remaining.content | b64decode)'
+      - '''Suites: fixture-security'' in (repo_remaining.content | b64decode)'
+- name: Remove a selected APT file
+  jomrr.general.repo_apt:
+    path: /tmp/jomrr-general-repo-test/new.sources
+    state: absent
+  register: repo_removed
+- name: Repeat APT file removal
+  jomrr.general.repo_apt:
+    path: /tmp/jomrr-general-repo-test/new.sources
+    state: absent
+  register: repo_absent
+- name: Remove APT sources exactly once
+  ansible.builtin.assert:
+    that:
+      - repo_removed.changed
+      - not repo_absent.changed
+- name: Run repository invalid
+  ansible.builtin.include_tasks: invalid.yml

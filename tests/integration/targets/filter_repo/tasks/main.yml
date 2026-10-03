@@ -1,0 +1,36 @@
+---
+- name: Resolve a repository ID independently of its filename
+  ansible.builtin.assert:
+    that:
+      - resolved[0].path == '/etc/yum.repos.d/almalinux-extras.repo'
+      - resolved[0].name == 'extras'
+      - resolved[1].path == '/etc/yum.repos.d/fedora.repo'
+      - original[0].file == "almalinux-extras"
+  vars:
+    original:
+      - name: extras
+        file: almalinux-extras
+        enabled: false
+      - name: fedora
+        enabled: true
+    resolved: '{{ original | jomrr.general.repo({}, ''dnf'', {''enabled'': true, ''state'': ''present''}, ''/etc/yum.repos.d'')
+      }}'
+- name: An empty declaration selects nothing
+  ansible.builtin.assert:
+    that:
+      - '([] | jomrr.general.repo({}, ''apt'', {''enabled'': true, ''state'': ''present''}, ''/etc/apt/sources.list.d''))
+        == []'
+- name: Reject duplicate repository ownership
+  block:
+    - name: Resolve conflicting declarations
+      ansible.builtin.debug:
+        msg: '{{ [{''name'': ''duplicate''}, {''name'': ''duplicate''}] | jomrr.general.repo({}, ''dnf'', {''enabled'':
+          true, ''state'': ''present''}, ''/tmp'') }}'
+    - name: Fail if duplicate ownership was accepted
+      ansible.builtin.fail:
+        msg: Duplicate repository was accepted
+  rescue:
+    - name: Report the ownership conflict
+      ansible.builtin.assert:
+        that:
+          - '''only once'' in ansible_failed_result.msg'

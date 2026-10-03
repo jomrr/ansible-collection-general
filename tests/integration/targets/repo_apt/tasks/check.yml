@@ -1,0 +1,23 @@
+---
+- name: Read source after APT check mode
+  ansible.builtin.slurp:
+    src: /tmp/jomrr-general-repo-test/supplied.sources
+  register: repo_original
+- name: Check mode preserved APT source bytes
+  ansible.builtin.assert:
+    that:
+      - repo_original.content | b64decode == repo_expected
+  vars:
+    repo_expected: "# shared suite settings\nTypes: deb deb-src\nURIs: https://public.invalid/archive\nSuites:\
+      \ fixture\n# comment between continued suites\n fixture-backports\nComponents: main\nArchitectures: amd64\n\
+      Signed-By:\n -----BEGIN PGP PUBLIC KEY BLOCK-----\n .\n# comment between key lines\n abcdef\n -----END\
+      \ PGP PUBLIC KEY BLOCK-----\nEnabled: no\nX-Organization: keep\n  \n# security stanza\nTypes: deb\nURIs:\
+      \ https://public.invalid/security\nSuites: fixture-security\nComponents: main\nEnabled: no\n"
+- name: Inspect absent APT file after check mode
+  ansible.builtin.stat:
+    path: /tmp/jomrr-general-repo-test/new.sources
+  register: repo_missing
+- name: Check mode created no APT file
+  ansible.builtin.assert:
+    that:
+      - not repo_missing.stat.exists

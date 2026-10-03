@@ -1,0 +1,18 @@
+---
+- name: Converge supplied RPM section
+  jomrr.general.repo_rpm:
+    path: /tmp/jomrr-general-repo-test/supplied.repo
+    name: fixture
+    backend: '{{ ''zypper'' if ansible_facts.os_family == ''Suse'' else ''dnf'' }}'
+    baseurl:
+      - https://mirror.invalid/v1
+  register: repo_supplied
+- name: Create a selected RPM section
+  jomrr.general.repo_rpm:
+    path: /tmp/jomrr-general-repo-test/new.repo
+    name: new
+    backend: '{{ ''zypper'' if ansible_facts.os_family == ''Suse'' else ''dnf'' }}'
+    baseurl:
+      - https://mirror.invalid/new
+    enabled: false
+  register: repo_created

@@ -10,15 +10,19 @@ Ansible collection with general modules and plugins.
 
 ## Purpose
 
-Generate reproducible MAC addresses for virtual machines from stable host names.
-The module and lookup plugin share SHA-256 address generation with the 52:54
-prefix.
+Manage selected APT and RPM package repositories while retaining unspecified
+settings, and generate reproducible MAC addresses for virtual machines from
+stable host names.
 
 ## Requirements
 
 - ansible-core >=2.20.0
-- Both plugins use Python's standard library and Ansible; no additional Python
-  packages or system programs are required.
+- repo_apt requires apt-get on the managed host and uses Python's standard
+  library.
+- repo_rpm requires zypper only when auto_import_keys is enabled. DNF and DNF5
+  use the same file format.
+- The repo filter runs on the controller; it and the MAC plugins need no
+  additional Python packages.
 
 ## Installation
 
@@ -33,12 +37,46 @@ ansible-galaxy collection install jomrr.general
 | Name | idempotent | check_mode | Description |
 | ---- | ---------- | ---------- | ----------- |
 | [`jomrr.general.mac`](plugins/modules/mac.py) | n/a (read) | yes | Generate deterministic MAC addresses from a name |
+| [`jomrr.general.repo_apt`](plugins/modules/repo_apt.py) | True | yes | Manage desired APT sources while preserving unspecified settings |
+| [`jomrr.general.repo_rpm`](plugins/modules/repo_rpm.py) | True | yes | Manage desired DNF and Zypper repository settings |
+
+### Filter Plugins
+
+| Name | idempotent | check_mode | Description |
+| ---- | ---------- | ---------- | ----------- |
+| [`jomrr.general.repo`](plugins/filter/repo.py) | n/a | n/a | Resolve desired repositories and caller-supplied presets |
 
 ### Lookup Plugins
 
 | Name | idempotent | check_mode | Description |
 | ---- | ---------- | ---------- | ----------- |
 | [`jomrr.general.mac`](plugins/lookup/mac.py) | n/a | n/a | Generate MAC address from string |
+
+## Package Repositories
+
+`jomrr.general.repo_apt` manages selected suites in a DEB822 `.sources` file.
+Omitted suites select the whole file. Existing `.list` files support mirror URLs,
+enabled state and removal; new sources use DEB822. Omitted options are preserved.
+
+`jomrr.general.repo_rpm` selects a repository ID with `name` and its file with
+`path`. For example, the ID `extras` can be in `almalinux-extras.repo`.
+Creation defaults apply only to new sections. Explicit mirror URLs replace
+alternative `metalink` or `mirrorlist` settings while retaining other options,
+comments and sibling sections. `backend: dnf` covers DNF and DNF5;
+`backend: zypper` manages openSUSE repository files.
+
+`jomrr.general.repo` resolves declarations and caller-supplied presets before
+module execution. It accepts a list followed by `catalog`, `backend`, `policies`
+and `directory`. The collection includes no distro presets or default-repo catalogue.
+
+APT downloaded armored keys are embedded. Binary keys use
+`/etc/apt/keyrings/<hash>.gpg`, with the first 24 hexadecimal SHA-256 characters
+of the URL. Existing key files are not automatically deleted.
+
+DEB822 files are parsed without external Python dependencies. The parser
+preserves comments and multiline fields and rejects duplicate fields or
+unsupported layouts. Integration tests cover Debian 13 and Ubuntu 24.04
+and 26.04 with each distribution's system Python and native APT validator.
 
 ## Address Generation
 
@@ -57,10 +95,46 @@ with indices starting at zero. For example, the first address for
 
 ## Check Mode
 
-The module calculates the same addresses in normal and check mode and always
-returns unchanged.
+Repository modules predict changes without writing managed files or refreshing
+repositories. MAC generation always returns unchanged. Repository file diffs are
+omitted because files may contain credentials.
 
 ## Example Playbook
+
+### Manage repositories installed by distribution or release packages
+
+```yaml
+---
+- name: Select private Fedora mirrors
+  hosts: fedora
+  tasks:
+    - name: Use a private Fedora mirror
+      jomrr.general.repo_rpm:
+        backend: dnf
+        path: /etc/yum.repos.d/fedora.repo
+        name: fedora
+        enabled: true
+        baseurl: ['https://mirror.example.org/fedora/$releasever/$basearch']
+
+    - name: Change RPM Fusion installed by its release package
+      jomrr.general.repo_rpm:
+        backend: dnf
+        path: /etc/yum.repos.d/rpmfusion-free.repo
+        name: rpmfusion-free
+        baseurl: ['https://mirror.example.org/rpmfusion/free/fedora/$releasever/$basearch']
+
+- name: Select a private APT mirror
+  hosts: debian
+  tasks:
+    - name: Change the Backports mirror
+      jomrr.general.repo_apt:
+        path: /etc/apt/sources.list.d/backports.sources
+        suites: [trixie-backports]
+        uris: ['https://mirror.example.org/debian']
+        components: [main]
+        signed_by: /usr/share/keyrings/debian-archive-keyring.gpg
+
+```
 
 ### Generate addresses for a virtual machine
 

@@ -1,0 +1,87 @@
+---
+- name: Exercise repositories installed by the distribution
+  when: ansible_facts.distribution in ['Fedora', 'AlmaLinux']
+  vars:
+    repo_native_name: '{{ ''fedora'' if ansible_facts.distribution == ''Fedora'' else ''crb'' }}'
+    repo_native_path: '{{ ''/etc/yum.repos.d/fedora.repo'' if ansible_facts.distribution == ''Fedora'' else
+      ''/etc/yum.repos.d/almalinux-crb.repo'' }}'
+  block:
+    - name: Save package-supplied repository
+      ansible.builtin.slurp:
+        src: '{{ repo_native_path }}'
+      register: repo_native_original
+    - name: Inspect package-supplied repository metadata
+      ansible.builtin.stat:
+        path: '{{ repo_native_path }}'
+      register: repo_native_metadata
+    - name: Change only the selected package-supplied section
+      jomrr.general.repo_rpm:
+        path: '{{ repo_native_path }}'
+        name: '{{ repo_native_name }}'
+        backend: dnf
+        enabled: false
+        baseurl:
+          - https://mirror.invalid/native/$releasever/$basearch
+      register: repo_native_changed
+    - name: Read package-supplied repository after convergence
+      ansible.builtin.slurp:
+        src: '{{ repo_native_path }}'
+      register: repo_native_current
+    - name: Retain literal DNF variables and unrelated sections
+      ansible.builtin.assert:
+        that:
+          - repo_native_changed.changed
+          - '''baseurl=https://mirror.invalid/native/$releasever/$basearch'' in (repo_native_current.content
+            | b64decode)'
+          - (repo_native_original.content | b64decode | regex_findall('(?m)^\[.*\]')) == (repo_native_current.content
+            | b64decode | regex_findall('(?m)^\[.*\]'))
+  always:
+    - name: Restore the package-supplied repository
+      ansible.builtin.copy:
+        dest: '{{ repo_native_path }}'
+        content: '{{ repo_native_original.content | b64decode }}'
+        mode: '{{ repo_native_metadata.stat.mode }}'
+      when: repo_native_original.content is defined and repo_native_metadata.stat.mode is defined
+- name: Exercise native Zypper refresh
+  when: ansible_facts.os_family == 'Suse'
+  block:
+    - name: Install the RPM metadata fixture tool
+      community.general.zypper:
+        name: createrepo_c
+        state: present
+    - name: Build local empty RPM metadata
+      ansible.builtin.command:
+        argv:
+          - createrepo_c
+          - /tmp/jomrr-general-repo-test
+      changed_when: false
+    - name: Refresh a selected local Zypper repository
+      jomrr.general.repo_rpm:
+        path: /etc/zypp/repos.d/jomrr-general-test.repo
+        name: jomrr-general-test
+        backend: zypper
+        repo: file:///tmp/jomrr-general-repo-test
+        gpgcheck: false
+        auto_import_keys: true
+      register: repo_zypper
+    - name: Repeat the local Zypper declaration
+      jomrr.general.repo_rpm:
+        path: /etc/zypp/repos.d/jomrr-general-test.repo
+        name: jomrr-general-test
+        backend: zypper
+        repo: file:///tmp/jomrr-general-repo-test
+        gpgcheck: false
+        auto_import_keys: true
+      register: repo_zypper_repeat
+    - name: Refresh only on a real repository change
+      ansible.builtin.assert:
+        that:
+          - repo_zypper.changed
+          - not repo_zypper_repeat.changed
+  always:
+    - name: Remove the local Zypper repository
+      jomrr.general.repo_rpm:
+        path: /etc/zypp/repos.d/jomrr-general-test.repo
+        name: jomrr-general-test
+        backend: zypper
+        state: absent

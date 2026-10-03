@@ -1,0 +1,39 @@
+---
+- name: Prepare duplicate fields
+  ansible.builtin.copy:
+    dest: /tmp/jomrr-general-repo-test/invalid.sources
+    content: 'Suites: fixture
+
+      sUiTeS: hidden-secret-fixture
+
+      '
+    mode: '0640'
+- name: Reject duplicate fields through the real module
+  block:
+    - name: Reject malformed repository content
+      jomrr.general.repo_apt:
+        path: /tmp/jomrr-general-repo-test/invalid.sources
+        enabled: true
+    - name: Fail when malformed content was accepted
+      ansible.builtin.fail:
+        msg: Malformed fixture was accepted
+  rescue:
+    - name: Report a safe parser error
+      ansible.builtin.assert:
+        that:
+          - '''uplicate'' in ansible_failed_result.msg'
+          - '''hidden-secret-fixture'' not in ansible_failed_result.msg'
+- name: Read rejected source
+  ansible.builtin.slurp:
+    src: /tmp/jomrr-general-repo-test/invalid.sources
+  register: repo_invalid
+- name: Failure preserved original bytes
+  ansible.builtin.assert:
+    that:
+      - repo_invalid.content | b64decode == repo_expected_invalid
+  vars:
+    repo_expected_invalid: 'Suites: fixture
+
+      sUiTeS: hidden-secret-fixture
+
+      '

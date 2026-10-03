@@ -1,0 +1,25 @@
+---
+- name: Converge selected APT suites
+  jomrr.general.repo_apt:
+    path: /tmp/jomrr-general-repo-test/supplied.sources
+    suites:
+      - fixture-backports
+    uris:
+      - https://mirror.invalid/v1
+  register: repo_supplied
+- name: Converge supplied legacy sources
+  jomrr.general.repo_apt:
+    path: /tmp/jomrr-general-repo-test/supplied.list
+    suites:
+      - fixture-backports
+    uris:
+      - https://mirror.invalid/v1
+- name: Create a selected DEB822 source
+  jomrr.general.repo_apt:
+    path: /tmp/jomrr-general-repo-test/new.sources
+    suites:
+      - ./
+    uris:
+      - https://mirror.invalid/new
+    enabled: false
+  register: repo_created

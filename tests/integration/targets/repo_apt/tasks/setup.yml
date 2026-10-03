@@ -1,0 +1,45 @@
+---
+- name: Create isolated repository directory
+  ansible.builtin.file:
+    path: /tmp/jomrr-general-repo-test
+    state: directory
+    mode: '0755'
+- name: Verify the system APT validator
+  ansible.builtin.command:
+    argv:
+      - apt-get
+      - --version
+  changed_when: false
+- name: Record system Python without optional parser dependencies
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/python3
+      - -c
+      - import sys; print(sys.version); print(sys.executable)
+  changed_when: false
+  register: repo_python
+- name: Report the tested interpreter
+  ansible.builtin.debug:
+    var: repo_python.stdout_lines
+- name: Prepare multi-suite sources and inline key
+  ansible.builtin.copy:
+    dest: /tmp/jomrr-general-repo-test/supplied.sources
+    content: "# shared suite settings\nTypes: deb deb-src\nURIs: https://public.invalid/archive\nSuites: fixture\n\
+      # comment between continued suites\n fixture-backports\nComponents: main\nArchitectures: amd64\nSigned-By:\n\
+      \ -----BEGIN PGP PUBLIC KEY BLOCK-----\n .\n# comment between key lines\n abcdef\n -----END PGP PUBLIC\
+      \ KEY BLOCK-----\nEnabled: no\nX-Organization: keep\n  \n# security stanza\nTypes: deb\nURIs: https://public.invalid/security\n\
+      Suites: fixture-security\nComponents: main\nEnabled: no\n"
+    mode: '0640'
+- name: Prepare existing legacy sources
+  ansible.builtin.copy:
+    dest: /tmp/jomrr-general-repo-test/supplied.list
+    content: '# comment
+
+      # deb [arch=amd64 trusted=no] https://public.invalid fixture-backports main # keep
+
+      # deb-src https://public.invalid fixture-backports main
+
+      # deb https://public.invalid fixture main
+
+      '
+    mode: '0640'

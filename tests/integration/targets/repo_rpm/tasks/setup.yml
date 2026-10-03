@@ -1,0 +1,16 @@
+---
+- name: Create isolated repository directory
+  ansible.builtin.file:
+    path: /tmp/jomrr-general-repo-test
+    state: directory
+    mode: '0755'
+- name: Prepare package-supplied sections
+  ansible.builtin.copy:
+    dest: /tmp/jomrr-general-repo-test/supplied.repo
+    content: "# package-supplied\n[fixture]\nname=Supplied\nmetalink=https://public.invalid/metalink\n  https://public.invalid/continued\n\
+      # keep inside source\nenabled=0\ngpgcheck=1\npriority=83\n\n# sibling comment\n[sibling]\nname=Sibling\n\
+      baseurl=https://sibling.invalid\nenabled=0\n"
+    mode: '0640'
+- name: Select RPM backend
+  ansible.builtin.set_fact:
+    repo_test_backend: '{{ ''zypper'' if ansible_facts.os_family == ''Suse'' else ''dnf'' }}'

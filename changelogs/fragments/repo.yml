@@ -1,0 +1,5 @@
+---
+minor_changes:
+  - repo_apt - manage selected APT sources with a strict, dependency-free DEB822 parser.
+  - repo_rpm - manage DNF, DNF5 and Zypper sections while preserving unrelated configuration.
+  - repo - resolve desired repository declarations and caller-supplied presets.

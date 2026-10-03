@@ -1,0 +1,58 @@
+---
+- name: Read supplied RPM section
+  ansible.builtin.slurp:
+    src: /tmp/jomrr-general-repo-test/supplied.repo
+  register: repo_read
+- name: Preserve unselected RPM bytes
+  ansible.builtin.assert:
+    that:
+      - repo_read.content | b64decode == repo_expected
+  vars:
+    repo_expected: '# package-supplied
+
+      [fixture]
+
+      name=Supplied
+
+      # keep inside source
+
+      enabled=0
+
+      gpgcheck=1
+
+      priority=83
+
+
+      # sibling comment
+
+      baseurl=https://mirror.invalid/v1
+
+      [sibling]
+
+      name=Sibling
+
+      baseurl=https://sibling.invalid
+
+      enabled=0
+
+      '
+- name: Inspect preserved RPM file mode
+  ansible.builtin.stat:
+    path: /tmp/jomrr-general-repo-test/supplied.repo
+  register: repo_metadata
+- name: Preserve the supplied mode
+  ansible.builtin.assert:
+    that:
+      - repo_metadata.stat.mode == '0640'
+- name: Repeat RPM convergence
+  jomrr.general.repo_rpm:
+    path: /tmp/jomrr-general-repo-test/supplied.repo
+    name: fixture
+    backend: '{{ ''zypper'' if ansible_facts.os_family == ''Suse'' else ''dnf'' }}'
+    baseurl:
+      - https://mirror.invalid/v1
+  register: repo_repeated
+- name: Repeated RPM declaration is unchanged
+  ansible.builtin.assert:
+    that:
+      - not repo_repeated.changed

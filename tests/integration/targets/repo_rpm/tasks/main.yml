@@ -1,0 +1,28 @@
+---
+- name: Gather repository platform facts
+  ansible.builtin.setup:
+    gather_subset:
+      - min
+- name: Exercise the native repository backend
+  when: ansible_facts.os_family in ['RedHat', 'Suse']
+  block:
+    - name: Run repository setup
+      ansible.builtin.include_tasks: setup.yml
+    - name: Predict repository convergence
+      ansible.builtin.include_tasks:
+        file: converge.yml
+        apply:
+          check_mode: true
+    - name: Run repository check
+      ansible.builtin.include_tasks: check.yml
+    - name: Run repository converge
+      ansible.builtin.include_tasks: converge.yml
+    - name: Run repository verify
+      ansible.builtin.include_tasks: verify.yml
+    - name: Run repository lifecycle
+      ansible.builtin.include_tasks: lifecycle.yml
+  always:
+    - name: Remove isolated repository fixtures
+      ansible.builtin.file:
+        path: /tmp/jomrr-general-repo-test
+        state: absent

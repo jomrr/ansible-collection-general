@@ -1,0 +1,53 @@
+---
+- name: Read split APT source
+  ansible.builtin.slurp:
+    src: /tmp/jomrr-general-repo-test/supplied.sources
+  register: repo_read
+- name: Preserve comments, keys and unrelated stanzas
+  ansible.builtin.assert:
+    that:
+      - (repo_read.content | b64decode).count('Signed-By:') == 2
+      - (repo_read.content | b64decode).count('# comment between key lines') == 2
+      - '(repo_read.content | b64decode).count(''X-Organization: keep'') == 2'
+      - '''URIs: https://public.invalid/archive\nSuites: fixture\n'' in (repo_read.content | b64decode)'
+      - '''URIs: https://mirror.invalid/v1\nSuites: fixture-backports\n'' in (repo_read.content | b64decode)'
+      - '''# security stanza\nTypes: deb\nURIs: https://public.invalid/security\nSuites: fixture-security''
+        in (repo_read.content | b64decode)'
+- name: Read legacy source
+  ansible.builtin.slurp:
+    src: /tmp/jomrr-general-repo-test/supplied.list
+  register: repo_legacy
+- name: Change only selected legacy URLs
+  ansible.builtin.assert:
+    that:
+      - repo_legacy.content | b64decode == repo_expected
+  vars:
+    repo_expected: '# comment
+
+      # deb [arch=amd64 trusted=no] https://mirror.invalid/v1 fixture-backports main # keep
+
+      # deb-src https://mirror.invalid/v1 fixture-backports main
+
+      # deb https://public.invalid fixture main
+
+      '
+- name: Inspect preserved APT file mode
+  ansible.builtin.stat:
+    path: /tmp/jomrr-general-repo-test/supplied.sources
+  register: repo_metadata
+- name: Preserve APT file metadata
+  ansible.builtin.assert:
+    that:
+      - repo_metadata.stat.mode == '0640'
+- name: Repeat APT convergence
+  jomrr.general.repo_apt:
+    path: /tmp/jomrr-general-repo-test/supplied.sources
+    suites:
+      - fixture-backports
+    uris:
+      - https://mirror.invalid/v1
+  register: repo_repeated
+- name: Repeated APT declaration is unchanged
+  ansible.builtin.assert:
+    that:
+      - not repo_repeated.changed

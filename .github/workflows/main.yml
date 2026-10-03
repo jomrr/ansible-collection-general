@@ -92,3 +92,47 @@ jobs:
       - name: Run authored integration targets
         if: hashFiles('ansible_collections/jomrr/general/tests/integration/targets/**') != ''
         run: ansible-test integration --docker --python 3.12 -v
+  molecule:
+    name: Molecule (${{ matrix.scenario }})
+    needs: [test, changes]
+    if: needs.changes.outputs.integration == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario:
+          - "repos"
+    env:
+      ANSIBLE_COLLECTIONS_PATH: ${{ github.workspace }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: ansible_collections/jomrr/general
+    steps:
+      - name: Check out the collection
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
+          persist-credentials: false
+          path: ansible_collections/jomrr/general
+      - uses: astral-sh/setup-uv@v8.1.0
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-suffix: ${{ github.job }}-${{ matrix.group || matrix.scenario || 'default' }}
+          cache-dependency-glob: ansible_collections/jomrr/general/pyproject.toml
+      - name: Install tools from pyproject.toml
+        run: |
+          uv venv --python 3.12 .venv
+          uv pip install --python .venv/bin/python --group dev --group ansible-stable-2-20 --refresh-package ansible-core
+      - name: Add collection tools to PATH
+        run: echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+      - name: Show the container engine
+        run: podman version
+
+      - name: Install test dependencies
+        run: |
+          ansible-galaxy collection install -r tests/integration/requirements.yml -p "$ANSIBLE_COLLECTIONS_PATH"
+          ansible-galaxy role install -r tests/integration/requirements.yml
+      - name: Run the selected scenario
+        run: molecule test -s ${{ matrix.scenario }}

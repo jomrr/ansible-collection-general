@@ -1,0 +1,21 @@
+---
+- name: Read source after check mode
+  ansible.builtin.slurp:
+    src: /tmp/jomrr-general-repo-test/supplied.repo
+  register: repo_original
+- name: Check mode preserved supplied bytes
+  ansible.builtin.assert:
+    that:
+      - repo_original.content | b64decode == repo_expected_original
+  vars:
+    repo_expected_original: "# package-supplied\n[fixture]\nname=Supplied\nmetalink=https://public.invalid/metalink\n\
+      \  https://public.invalid/continued\n# keep inside source\nenabled=0\ngpgcheck=1\npriority=83\n\n# sibling\
+      \ comment\n[sibling]\nname=Sibling\nbaseurl=https://sibling.invalid\nenabled=0\n"
+- name: Inspect absent new file after check mode
+  ansible.builtin.stat:
+    path: /tmp/jomrr-general-repo-test/new.repo
+  register: repo_missing
+- name: Check mode created no file
+  ansible.builtin.assert:
+    that:
+      - not repo_missing.stat.exists

@@ -11,7 +11,7 @@ default-groups = ["default"]
 
 conflicts = [[{ group = "ansible-stable-2-20" }, { group = "ansible-stable-2-21" }, { group = "ansible-devel" }]]
 [dependency-groups]
-default = [{ include-group = "dev" }, { include-group = "ansible-stable-2-20" }]
+default = [{ include-group = "dev" }, { include-group = "ansible-stable-2-20" }, { include-group = "docs" }]
 ansible-stable-2-20 = ["ansible-core @ https://github.com/ansible/ansible/archive/stable-2.20.tar.gz"]
 ansible-stable-2-21 = ["ansible-core @ https://github.com/ansible/ansible/archive/stable-2.21.tar.gz"]
 ansible-devel = ["ansible-core @ https://github.com/ansible/ansible/archive/devel.tar.gz"]
