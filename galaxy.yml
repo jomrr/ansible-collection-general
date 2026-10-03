@@ -17,7 +17,7 @@ dependencies: {}
 documentation: https://github.com/jomrr/ansible-collection-general
 homepage: https://github.com/jomrr/ansible-collection-general
 issues: https://github.com/jomrr/ansible-collection-general/issues
-version: 0.2.0
+version: 1.0.0
 readme: README.md
 repository: https://github.com/jomrr/ansible-collection-general
 build_ignore:

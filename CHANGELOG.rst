@@ -1,4 +1,23 @@
-jomrr.general Release Notes
-===========================
+===============================
+jomrr.general 1.0 Release Notes
+===============================
 
-No releases yet.
+.. contents:: Topics
+
+v1.0.0
+======
+
+Minor Changes
+-------------
+
+- Add the mac module and lookup plugin with shared SHA-256 address generation and the 52:54 prefix.
+- Hash names directly by default; positive module counts generate indexed addresses.
+- Install development dependencies directly from pyproject.toml without a uv.lock file.
+- License the collection under GPL-3.0-or-later.
+- Manage collection metadata, documentation, tooling and workflows through Ansible Factory.
+- Return calculated MAC addresses in module check mode without reporting changes.
+
+Bugfixes
+--------
+
+- mac - embed module and lookup documentation in Python to prevent duplicate Galaxy entries.
