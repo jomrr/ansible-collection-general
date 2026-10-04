@@ -1,8 +1,32 @@
 ===============================
-jomrr.general 1.0 Release Notes
+jomrr.general 1.1 Release Notes
 ===============================
 
 .. contents:: Topics
+
+v1.1.0
+======
+
+Minor Changes
+-------------
+
+- repo - resolve desired repository declarations and caller-supplied presets.
+- repo_apt - manage selected APT sources with a strict, dependency-free DEB822 parser.
+- repo_rpm - manage DNF, DNF5 and Zypper sections while preserving unrelated configuration.
+
+New Plugins
+-----------
+
+Filter
+~~~~~~
+
+- repo - Resolve desired repositories and caller\-supplied presets
+
+New Modules
+-----------
+
+- repo_apt - Manage desired APT sources while preserving unspecified settings
+- repo_rpm - Manage desired DNF and Zypper repository settings
 
 v1.0.0
 ======

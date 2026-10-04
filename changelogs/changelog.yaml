@@ -21,3 +21,26 @@ releases:
       - galaxy-documentation.yml
       - mac.yml
     release_date: '2026-10-03'
+  1.1.0:
+    changes:
+      minor_changes:
+        - repo - resolve desired repository declarations and caller-supplied presets.
+        - repo_apt - manage selected APT sources with a strict, dependency-free DEB822
+          parser.
+        - repo_rpm - manage DNF, DNF5 and Zypper sections while preserving unrelated
+          configuration.
+    fragments:
+      - repo.yml
+    modules:
+      - description: Manage desired APT sources while preserving unspecified settings
+        name: repo_apt
+        namespace: ''
+      - description: Manage desired DNF and Zypper repository settings
+        name: repo_rpm
+        namespace: ''
+    plugins:
+      filter:
+        - description: Resolve desired repositories and caller\-supplied presets
+          name: repo
+          namespace: null
+    release_date: '2026-10-04'
