@@ -1,0 +1,62 @@
+---
+- name: Allocate batch-read test directory
+  ansible.builtin.tempfile:
+    state: directory
+    suffix: slurp-files
+  register: batch_read_directory
+
+- name: Exercise batch reads
+  block:
+    - name: Create binary DER input
+      ansible.builtin.copy:
+        src: "{{ role_path | default(playbook_dir + '/targets/slurp_files') }}/files/binary.der"
+        dest: "{{ batch_read_directory.path }}/binary.der"
+        mode: '0600'
+
+    - name: Create an empty input file
+      ansible.builtin.copy:
+        content: ''
+        dest: "{{ batch_read_directory.path }}/empty"
+        mode: '0600'
+
+    - name: Read both files in one invocation
+      jomrr.general.slurp_files:
+        paths: &batch_read_paths
+          - "{{ batch_read_directory.path }}/binary.der"
+          - "{{ batch_read_directory.path }}/empty"
+      register: batch_read_result
+
+    - name: Read the same files in check mode
+      jomrr.general.slurp_files:
+        paths: *batch_read_paths
+      check_mode: true
+      register: batch_read_check
+
+    - name: Verify binary content and unchanged results
+      ansible.builtin.assert:
+        that:
+          - not batch_read_result.changed
+          - not batch_read_check.changed
+          - batch_read_result.content == batch_read_check.content
+          - batch_read_result.content[batch_read_directory.path + '/binary.der'] == 'MAgCAQEEAwD/gA=='
+          - batch_read_result.content[batch_read_directory.path + '/empty'] == ''
+
+    - name: Read a missing file after a readable file
+      jomrr.general.slurp_files:
+        paths:
+          - "{{ batch_read_directory.path }}/binary.der"
+          - "{{ batch_read_directory.path }}/missing"
+      register: batch_read_missing
+      failed_when: false
+
+    - name: Verify no partial contents escape on failure
+      ansible.builtin.assert:
+        that:
+          - >-
+            batch_read_missing.msg == batch_read_directory.path + '/missing: No such file or directory'
+          - batch_read_missing.content is not defined
+  always:
+    - name: Remove batch-read test directory
+      ansible.builtin.file:
+        path: "{{ batch_read_directory.path }}"
+        state: absent

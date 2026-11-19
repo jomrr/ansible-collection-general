@@ -4,6 +4,12 @@
   connection: local
   gather_facts: false
   tasks:
+    - name: Check the installed batch-read module
+      ansible.builtin.import_tasks: targets/slurp_files/tasks/main.yml
+
+    - name: Check the installed batch-write module
+      ansible.builtin.import_tasks: targets/write_files/tasks/main.yml
+
     - name: Check the MAC module
       ansible.builtin.import_tasks: targets/mac/tasks/main.yml
 

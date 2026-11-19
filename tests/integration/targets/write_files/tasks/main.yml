@@ -1,0 +1,156 @@
+---
+- name: Check for POSIX ACL tools
+  ansible.builtin.stat:
+    path: /usr/bin/setfacl
+  register: batch_write_acl_tools
+
+- name: Install POSIX ACL tools for integration testing
+  ansible.builtin.package:
+    name: acl
+    state: present
+  when: not batch_write_acl_tools.stat.exists
+
+- name: Allocate batch-write test directory
+  ansible.builtin.tempfile:
+    state: directory
+    suffix: write-files
+  register: batch_write_directory
+
+- name: Exercise batch writes
+  block:
+    - name: Predict new files
+      jomrr.general.write_files:
+        files: &batch_write_files
+          - path: "{{ batch_write_directory.path }}/binary.der"
+            content: MAgCAQEEAwD/gA==
+          - path: "{{ batch_write_directory.path }}/empty"
+            content: ''
+      check_mode: true
+      register: batch_write_check
+
+    - name: Inspect predicted destination
+      ansible.builtin.stat:
+        path: "{{ batch_write_directory.path }}/binary.der"
+      register: batch_write_absent
+
+    - name: Verify check mode has not written files
+      ansible.builtin.assert:
+        that:
+          - batch_write_check.changed
+          - batch_write_check.paths | length == 2
+          - not batch_write_absent.stat.exists
+
+    - name: Write binary and empty files
+      jomrr.general.write_files:
+        files: *batch_write_files
+      register: batch_write_created
+
+    - name: Read written DER bytes independently
+      ansible.builtin.slurp:
+        src: "{{ batch_write_directory.path }}/binary.der"
+      register: batch_write_binary
+
+    - name: Add a named POSIX ACL entry
+      ansible.builtin.command:
+        argv: [setfacl, '-m', 'u:12345:r--', "{{ batch_write_directory.path }}/binary.der"]
+      changed_when: true
+
+    - name: Read original ACL
+      ansible.builtin.command:
+        argv: [getfacl, '-cp', "{{ batch_write_directory.path }}/binary.der"]
+      changed_when: false
+      register: batch_write_acl_before
+
+    - name: Inspect original file metadata
+      ansible.builtin.stat:
+        path: "{{ batch_write_directory.path }}/binary.der"
+      register: batch_write_before
+
+    - name: Repeat the batch without specifying attributes
+      jomrr.general.write_files:
+        files: *batch_write_files
+      register: batch_write_repeated
+
+    - name: Check the converged batch
+      jomrr.general.write_files:
+        files: *batch_write_files
+      check_mode: true
+      register: batch_write_converged
+
+    - name: Read retained ACL
+      ansible.builtin.command:
+        argv: [getfacl, '-cp', "{{ batch_write_directory.path }}/binary.der"]
+      changed_when: false
+      register: batch_write_acl_after
+
+    - name: Verify binary transfer and ACL stability
+      ansible.builtin.assert:
+        that:
+          - batch_write_created.changed
+          - batch_write_binary.content == 'MAgCAQEEAwD/gA=='
+          - not batch_write_repeated.changed
+          - batch_write_repeated.paths == []
+          - not batch_write_converged.changed
+          - batch_write_acl_before.stdout == batch_write_acl_after.stdout
+
+    - name: Predict an attribute-only change
+      jomrr.general.write_files:
+        files: &batch_write_attributes
+          - path: "{{ batch_write_directory.path }}/binary.der"
+            content: MAgCAQEEAwD/gA==
+            mode: '0600'
+            owner: "{{ (batch_write_before.stat.uid == 0) | ternary(65534, batch_write_before.stat.uid) }}"
+            group: "{{ (batch_write_before.stat.uid == 0) | ternary(65534, batch_write_before.stat.gid) }}"
+      check_mode: true
+      register: batch_write_attribute_check
+
+    - name: Inspect metadata after check mode
+      ansible.builtin.stat:
+        path: "{{ batch_write_directory.path }}/binary.der"
+      register: batch_write_after_check
+
+    - name: Apply an attribute-only change
+      jomrr.general.write_files:
+        files: *batch_write_attributes
+      register: batch_write_attributes_changed
+
+    - name: Inspect changed permissions
+      ansible.builtin.stat:
+        path: "{{ batch_write_directory.path }}/binary.der"
+      register: batch_write_after
+
+    - name: Verify attribute prediction and preserved inode
+      ansible.builtin.assert:
+        that:
+          - batch_write_attribute_check.changed
+          - batch_write_after_check.stat.mode == batch_write_before.stat.mode
+          - batch_write_attributes_changed.changed
+          - batch_write_after.stat.mode == '0600'
+          - batch_write_after.stat.uid == (65534 if batch_write_before.stat.uid == 0 else batch_write_before.stat.uid)
+          - batch_write_after.stat.gid == (65534 if batch_write_before.stat.uid == 0 else batch_write_before.stat.gid)
+          - batch_write_after.stat.inode == batch_write_before.stat.inode
+
+    - name: Create a destination symlink
+      ansible.builtin.file:
+        src: "{{ batch_write_directory.path }}/binary.der"
+        dest: "{{ batch_write_directory.path }}/link"
+        state: link
+
+    - name: Reject a destination symlink
+      jomrr.general.write_files:
+        files:
+          - path: "{{ batch_write_directory.path }}/link"
+            content: MAgCAQEEAwD/gA==
+      register: batch_write_link
+      failed_when: false
+
+    - name: Verify the symlink error
+      ansible.builtin.assert:
+        that:
+          - >-
+            batch_write_link.msg == batch_write_directory.path + '/link: is a symbolic link'
+  always:
+    - name: Remove batch-write test directory
+      ansible.builtin.file:
+        path: "{{ batch_write_directory.path }}"
+        state: absent

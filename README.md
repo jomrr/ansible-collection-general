@@ -11,8 +11,8 @@ Ansible collection with general modules and plugins.
 ## Purpose
 
 Manage selected APT and RPM package repositories while retaining unspecified
-settings, and generate reproducible MAC addresses for virtual machines from
-stable host names.
+settings, transfer batches of files between hosts, and generate reproducible MAC
+addresses for virtual machines from stable host names.
 
 ## Requirements
 
@@ -23,6 +23,8 @@ stable host names.
   use the same file format.
 - The repo filter runs on the controller; it and the MAC plugins need no
   additional Python packages.
+- slurp_files and write_files use Python's standard library and Ansible on the
+  managed host.
 
 ## Installation
 
@@ -39,6 +41,8 @@ ansible-galaxy collection install jomrr.general
 | [`jomrr.general.mac`](plugins/modules/mac.py) | n/a (read) | yes | Generate deterministic MAC addresses from a name |
 | [`jomrr.general.repo_apt`](plugins/modules/repo_apt.py) | True | yes | Manage desired APT sources while preserving unspecified settings |
 | [`jomrr.general.repo_rpm`](plugins/modules/repo_rpm.py) | True | yes | Manage desired DNF and Zypper repository settings |
+| [`jomrr.general.slurp_files`](plugins/modules/slurp_files.py) | n/a (read) | yes | Read multiple files as base64 in one call |
+| [`jomrr.general.write_files`](plugins/modules/write_files.py) | True | yes | Write multiple base64-encoded files in one call |
 
 ### Filter Plugins
 
@@ -51,6 +55,25 @@ ansible-galaxy collection install jomrr.general
 | Name | idempotent | check_mode | Description |
 | ---- | ---------- | ---------- | ----------- |
 | [`jomrr.general.mac`](plugins/lookup/mac.py) | n/a | n/a | Generate MAC address from string |
+
+## Batch File Transfer
+
+`jomrr.general.slurp_files` reads a list of paths in one module call and returns
+a `content` mapping from absolute paths to base64-encoded bytes.
+`jomrr.general.write_files` writes a list of `path` and base64 `content` pairs
+in one call, returning the changed `paths`. Both handle binary files.
+
+Writes compare bytes before atomically replacing a file. Destination directories
+must already exist. New files use the current umask and default SELinux context.
+Optional `mode`, `owner` and `group` values are enforced only when supplied.
+Unchanged contents without explicit attributes leave ACLs intact.
+
+Writing rejects a symlink in the final path component; linked parent directories
+are allowed. Reading follows symlinks. Batches stop at the first error without
+rolling back earlier writes. File contents are held in memory.
+
+Write inputs are masked and content diffs are omitted. Use task-level `no_log: true`
+when reading confidential files, because the read result intentionally contains their contents.
 
 ## Package Repositories
 
@@ -97,9 +120,37 @@ with indices starting at zero. For example, the first address for
 
 Repository modules predict changes without writing managed files or refreshing
 repositories. MAC generation always returns unchanged. Repository file diffs are
-omitted because files may contain credentials.
+omitted because files may contain credentials. slurp_files reads without
+changes; write_files predicts content and attribute changes without writing.
 
 ## Example Playbook
+
+### Transfer certificates in two module calls
+
+```yaml
+---
+- name: Distribute certificates
+  hosts: consumers
+  gather_facts: false
+  tasks:
+    - name: Read certificates from the CA host
+      jomrr.general.slurp_files:
+        paths:
+          - /var/lib/ca/host.pem
+          - /var/lib/ca/host.der
+      delegate_to: ca.example.org
+      register: certificates
+      no_log: true
+
+    - name: Write certificates on the consumer
+      jomrr.general.write_files:
+        files:
+          - path: /etc/pki/host.pem
+            content: "{{ certificates.content['/var/lib/ca/host.pem'] }}"
+            mode: '0644'
+          - path: /srv/share/host.der
+            content: "{{ certificates.content['/var/lib/ca/host.der'] }}"
+```
 
 ### Manage repositories installed by distribution or release packages
 
