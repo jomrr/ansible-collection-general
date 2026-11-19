@@ -1,8 +1,23 @@
 ===============================
-jomrr.general 1.1 Release Notes
+jomrr.general 1.2 Release Notes
 ===============================
 
 .. contents:: Topics
+
+v1.2.0
+======
+
+Minor Changes
+-------------
+
+- slurp_files - read multiple files as base64 in one module invocation.
+- write_files - write multiple base64-encoded files atomically with optional permissions and ownership.
+
+New Modules
+-----------
+
+- slurp_files - Read multiple files as base64 in one call
+- write_files - Write multiple base64\-encoded files in one call
 
 v1.1.0
 ======

@@ -1,4 +1,0 @@
----
-minor_changes:
-  - slurp_files - read multiple files as base64 in one module invocation.
-  - write_files - write multiple base64-encoded files atomically with optional permissions and ownership.
