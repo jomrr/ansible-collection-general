@@ -1,0 +1,151 @@
+---
+- name: Predict creation with a complete access ACL
+  jomrr.general.write_files:
+    files: &acl_files
+      - path: "{{ batch_write_directory.path }}/acl.der"
+        content: "{{ batch_acl_content | default('MAgCAQEEAwD/gA==') }}"
+        acl:
+          - user::rw-
+          - user:12345:rw-
+          - group::---
+          - mask::r--
+          - other::---
+  check_mode: true
+  register: batch_acl_new_check
+
+- name: Inspect predicted ACL destination
+  ansible.builtin.stat:
+    path: "{{ batch_write_directory.path }}/acl.der"
+  register: batch_acl_absent
+
+- name: Create a file with a complete access ACL
+  jomrr.general.write_files:
+    files: *acl_files
+  register: batch_acl_created
+
+- name: Read the resulting access ACL
+  ansible.builtin.command:
+    argv: [getfacl, '-cpn', "{{ batch_write_directory.path }}/acl.der"]
+  changed_when: false
+  register: batch_acl_original
+
+- name: Inspect ACL mask and original inode
+  ansible.builtin.stat:
+    path: "{{ batch_write_directory.path }}/acl.der"
+  register: batch_acl_metadata
+
+- name: Repeat a converged ACL write
+  jomrr.general.write_files:
+    files: *acl_files
+  register: batch_acl_repeated
+
+- name: Check a converged ACL write
+  jomrr.general.write_files:
+    files: *acl_files
+  check_mode: true
+  register: batch_acl_converged
+
+- name: Verify creation, explicit mask and idempotence
+  ansible.builtin.assert:
+    that:
+      - batch_acl_new_check.changed
+      - not batch_acl_absent.stat.exists
+      - batch_acl_created.changed
+      - batch_acl_metadata.stat.mode == '0640'
+      - "'user::rw-' in batch_acl_original.stdout_lines"
+      - "'group::---' in batch_acl_original.stdout_lines"
+      - "'mask::r--' in batch_acl_original.stdout_lines"
+      - "'other::---' in batch_acl_original.stdout_lines"
+      - "'user:12345:rw-' in batch_acl_original.stdout"
+      - "'#effective:r--' in batch_acl_original.stdout"
+      - not batch_acl_repeated.changed
+      - not batch_acl_converged.changed
+
+- name: Introduce an ACL entry outside the desired state
+  ansible.builtin.command:
+    argv: [setfacl, '--no-mask', '-m', 'u:12346:r--', "{{ batch_write_directory.path }}/acl.der"]
+  changed_when: true
+
+- name: Record ACL drift
+  ansible.builtin.command:
+    argv: [getfacl, '-cpn', "{{ batch_write_directory.path }}/acl.der"]
+  changed_when: false
+  register: batch_acl_drift
+
+- name: Predict removal of an unspecified ACL entry
+  jomrr.general.write_files:
+    files: *acl_files
+  check_mode: true
+  register: batch_acl_drift_check
+
+- name: Read ACL after check mode
+  ansible.builtin.command:
+    argv: [getfacl, '-cpn', "{{ batch_write_directory.path }}/acl.der"]
+  changed_when: false
+  register: batch_acl_after_check
+
+- name: Reconcile the complete access ACL
+  jomrr.general.write_files:
+    files: *acl_files
+  register: batch_acl_reconciled
+
+- name: Inspect inode after an ACL-only change
+  ansible.builtin.stat:
+    path: "{{ batch_write_directory.path }}/acl.der"
+  register: batch_acl_after_reconcile
+
+- name: Verify ACL-only change prediction and preserved inode
+  ansible.builtin.assert:
+    that:
+      - batch_acl_drift_check.changed
+      - batch_acl_after_check.stdout == batch_acl_drift.stdout
+      - batch_acl_reconciled.changed
+      - batch_acl_after_reconcile.stat.inode == batch_acl_metadata.stat.inode
+
+- name: Predict content replacement with an ACL
+  jomrr.general.write_files:
+    files: *acl_files
+  vars:
+    batch_acl_content: Y2hhbmdlZA==
+  check_mode: true
+  register: batch_acl_content_check
+
+- name: Read bytes after content check mode
+  ansible.builtin.slurp:
+    src: "{{ batch_write_directory.path }}/acl.der"
+  register: batch_acl_unchanged_bytes
+
+- name: Replace content while enforcing the complete ACL
+  jomrr.general.write_files:
+    files: *acl_files
+  vars:
+    batch_acl_content: Y2hhbmdlZA==
+  register: batch_acl_updated
+
+- name: Repeat the updated ACL write
+  jomrr.general.write_files:
+    files: *acl_files
+  vars:
+    batch_acl_content: Y2hhbmdlZA==
+  register: batch_acl_update_repeated
+
+- name: Read the ACL after content replacement
+  ansible.builtin.command:
+    argv: [getfacl, '-cpn', "{{ batch_write_directory.path }}/acl.der"]
+  changed_when: false
+  register: batch_acl_final
+
+- name: Read updated bytes independently
+  ansible.builtin.slurp:
+    src: "{{ batch_write_directory.path }}/acl.der"
+  register: batch_acl_updated_bytes
+
+- name: Verify content replacement, ACL preservation and removal of stale entries
+  ansible.builtin.assert:
+    that:
+      - batch_acl_content_check.changed
+      - batch_acl_unchanged_bytes.content == 'MAgCAQEEAwD/gA=='
+      - batch_acl_updated.changed
+      - batch_acl_updated_bytes.content == 'Y2hhbmdlZA=='
+      - not batch_acl_update_repeated.changed
+      - batch_acl_final.stdout == batch_acl_original.stdout

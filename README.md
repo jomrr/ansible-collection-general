@@ -25,6 +25,8 @@ addresses for virtual machines from stable host names.
   additional Python packages.
 - slurp_files and write_files use Python's standard library and Ansible on the
   managed host.
+- write_files additionally requires getfacl and setfacl when managing POSIX
+  ACLs.
 
 ## Installation
 
@@ -64,9 +66,34 @@ a `content` mapping from absolute paths to base64-encoded bytes.
 in one call, returning the changed `paths`. Both handle binary files.
 
 Writes compare bytes before atomically replacing a file. Destination directories
-must already exist. New files use the current umask and default SELinux context.
-Optional `mode`, `owner` and `group` values are enforced only when supplied.
-Unchanged contents without explicit attributes leave ACLs intact.
+must already exist. New files use the default SELinux context and, when both
+`mode` and `acl` are omitted, the current umask. Explicit modes protect new content from the start.
+Optional `mode`, `acl`, `owner` and `group` values are enforced only when supplied.
+Each file accepts either `mode` or `acl`. Omit both to retain an existing POSIX ACL,
+including its mask, across content updates.
+With an extended ACL, the group bits of `mode` control the mask, as with `chmod`.
+
+`acl` defines the complete access ACL and removes unspecified entries. Explicit
+masks are retained; without one, `setfacl` calculates the mask. For example:
+
+```yaml
+jomrr.general.write_files:
+  files:
+    - path: /srv/share/host.der
+      content: "{{ certificates.content['/var/lib/ca/host.der'] }}"
+      acl:
+        - user::rw-
+        - user:service:r--
+        - group::---
+        - mask::r--
+        - other::---
+```
+
+This ACL reports mode `0640` because its mask allows reading; the owning group
+has no access. A repeated run reports no change. New ACL-managed files start
+with `0600` before the ACL is applied. Content replacement is atomic; ownership
+and ACL changes are separate filesystem operations. Check mode predicts both
+content and ACL changes without writing.
 
 Writing rejects a symlink in the final path component; linked parent directories
 are allowed. Reading follows symlinks. Batches stop at the first error without

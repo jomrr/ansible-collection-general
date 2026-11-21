@@ -25,6 +25,7 @@
             content: MAgCAQEEAwD/gA==
           - path: "{{ batch_write_directory.path }}/empty"
             content: ''
+            mode: '0600'
       check_mode: true
       register: batch_write_check
 
@@ -44,6 +45,11 @@
       jomrr.general.write_files:
         files: *batch_write_files
       register: batch_write_created
+
+    - name: Inspect explicitly restricted new file
+      ansible.builtin.stat:
+        path: "{{ batch_write_directory.path }}/empty"
+      register: batch_write_restricted
 
     - name: Read written DER bytes independently
       ansible.builtin.slurp:
@@ -87,6 +93,7 @@
       ansible.builtin.assert:
         that:
           - batch_write_created.changed
+          - batch_write_restricted.stat.mode == '0600'
           - batch_write_binary.content == 'MAgCAQEEAwD/gA=='
           - not batch_write_repeated.changed
           - batch_write_repeated.paths == []
@@ -149,6 +156,8 @@
         that:
           - >-
             batch_write_link.msg == batch_write_directory.path + '/link: is a symbolic link'
+    - name: Exercise complete POSIX access ACLs
+      ansible.builtin.import_tasks: acl.yml
   always:
     - name: Remove batch-write test directory
       ansible.builtin.file:

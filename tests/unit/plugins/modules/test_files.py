@@ -3,6 +3,8 @@
 
 """Batch file contracts through real Ansible argument validation and results."""
 
+from __future__ import annotations
+
 import base64
 import errno
 import json
@@ -144,6 +146,45 @@ class BatchFileTests(unittest.TestCase):
         self.assertTrue(self.write()["changed"])
         self.assertEqual(stat.S_IMODE(self.path.stat().st_mode), 0o604)
 
+    def test_explicit_new_file_mode_at_publication(self) -> None:
+        """New content is never published with permissions exceeding its mode."""
+        real_chmod = os.chmod
+        real_rename = os.rename
+        observed: list[int] = []
+        expected = 0
+
+        def observe_chmod(path: str | bytes, mode: int) -> None:
+            real_chmod(path, mode)
+            target = Path(os.fsdecode(path))
+            if target.parent == self.directory and target.stat().st_size:
+                permissions = stat.S_IMODE(target.stat().st_mode)
+                self.assertEqual(permissions & ~expected, 0)
+                observed.append(permissions)
+
+        def observe_rename(source: str | bytes, destination: str | bytes) -> None:
+            self.assertEqual(stat.S_IMODE(os.stat(source).st_mode), expected)
+            real_rename(source, destination)
+            observed.append(stat.S_IMODE(os.stat(destination).st_mode))
+
+        previous = os.umask(0o022)
+        try:
+            for mode, expected in (("0600", 0o600), ("g+w", 0o664)):
+                with self.subTest(mode=mode):
+                    observed.clear()
+                    with (
+                        patch("os.chmod", side_effect=observe_chmod),
+                        patch("os.rename", side_effect=observe_rename),
+                    ):
+                        result = self.write(mode=mode)
+                    self.assertTrue(result["changed"])
+                    self.assertTrue(observed)
+                    self.assertEqual(stat.S_IMODE(self.path.stat().st_mode), expected)
+                    self.assertEqual(self.path.read_bytes(), self.data)
+                    self.assertFalse(self.write(mode=mode)["changed"])
+                    self.path.unlink()
+        finally:
+            os.umask(previous)
+
     def test_attribute_only_changes(self) -> None:
         """Explicit attributes converge without replacing unchanged contents."""
         self.path.write_bytes(self.data)
@@ -207,6 +248,20 @@ class BatchFileTests(unittest.TestCase):
             self.assertTrue(result["failed"])
             self.assert_redacted(result)
 
+    def test_acl_argument_validation(self) -> None:
+        """Reject competing permission models and non-access ACL input before writes."""
+        for options in (
+            {"mode": "0600", "acl": ["user::rw-", "group::---", "other::---"]},
+            {"acl": ["default:user::rw-"]},
+            {"acl": ["user::rw-\nother::r--"]},
+        ):
+            with self.subTest(options=options):
+                result = self.write(**options)
+                self.assertTrue(result["failed"])
+                self.assertFalse(self.path.exists())
+                self.assertEqual(list(self.directory.iterdir()), [])
+                self.assert_redacted(result)
+
     def test_symlinks_are_rejected_even_when_contents_match(self) -> None:
         """Both normal and dangling destination links remain untouched."""
         target = self.directory / "target"
@@ -246,3 +301,18 @@ class BatchFileTests(unittest.TestCase):
         self.assertEqual(self.path.read_bytes(), b"original")
         self.assertEqual(list(self.directory.iterdir()), [self.path])
         self.assert_redacted(result)
+
+        self.path.unlink()
+        previous = os.umask(0o022)
+        try:
+            with patch.object(
+                AnsibleModule,
+                "atomic_move",
+                side_effect=OSError(errno.EIO, "I/O error"),
+            ):
+                result = self.write(mode="0600")
+            self.assertTrue(result["failed"])
+            self.assertEqual(list(self.directory.iterdir()), [])
+            self.assertEqual(os.umask(0o022), 0o022)
+        finally:
+            os.umask(previous)
