@@ -1,5 +1,0 @@
----
-bugfixes:
-  - write_files - prevent temporary permission widening when creating a file with an explicit mode.
-minor_changes:
-  - write_files - add mutually exclusive mode and acl options; acl manages the complete POSIX access ACL idempotently, including check mode.

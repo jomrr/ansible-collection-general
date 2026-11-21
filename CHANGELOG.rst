@@ -1,8 +1,21 @@
 ===============================
-jomrr.general 1.2 Release Notes
+jomrr.general 1.3 Release Notes
 ===============================
 
 .. contents:: Topics
+
+v1.3.0
+======
+
+Minor Changes
+-------------
+
+- write_files - add mutually exclusive mode and acl options; acl manages the complete POSIX access ACL idempotently, including check mode.
+
+Bugfixes
+--------
+
+- write_files - prevent temporary permission widening when creating a file with an explicit mode.
 
 v1.2.0
 ======
